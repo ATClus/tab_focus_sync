@@ -3,6 +3,8 @@
 ## Overview
 Tab Focus Sync is a Firefox extension that tracks active tab changes using a SignalR Hub. It monitors tab activations, updates, closures, and window focus events in real time, ensuring seamless synchronization between the browser and your backend.
 
+> Requires the ClusterFocus.
+
 ## Features
 - **Real-time Tracking:** Utilizes SignalR for live tab status updates.
 - **Auto-Reconnect:** Automatically attempts to reconnect if the connection drops.
