@@ -40,6 +40,16 @@ Once installed, the extension automatically begins tracking:
 
 > Check the browser console for log messages regarding connection status and tracking events.
 
+## How It Works
+### Establishing Connection:
+The extension connects to the ClusterFocus using a WebSocket connection at the specified hubUrl.
+
+### Tab Tracking:
+- Activation & Updates: On tab activation or update, the extension calls StartTabTracking with the tab's title and URL.
+- Removal: When a tab is closed, StopTabTracking is invoked to end tracking.
+- Window Focus: If the browser loses window focus, tracking stops; when focus is regained, the active tab is queried and tracked again.
+- Inactivity Management: An inactivity timer is set to 60 minutes. If no tab activity occurs within this interval, tracking is automatically stopped.
+
 ## Contributing
 Contributions are welcome. If you encounter any issues or have suggestions, please open an issue or submit a pull request.
 
