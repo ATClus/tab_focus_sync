@@ -14,7 +14,7 @@ Tab Focus Sync is a Firefox extension that tracks active tab changes using a Sig
 ## Installation
 ### Prerequisites
 - **Firefox Browser:** Ensure you have the latest version with WebExtension support.
-- **SignalR Hub:** A running backend at the endpoint (default: `https://localhost:7131/tabfocused`).
+- **ClusterFocus Hub:** A running backend at the endpoint (default: `https://localhost:7131/tabfocused`).
 
 ### Steps
 1. **Clone the Repository:**
