@@ -28,12 +28,12 @@ Tab Focus Sync is a Firefox extension that tracks active tab changes using a Sig
     ```
 
 3. **Load the Extension in Firefox:**
-    - Open Firefox and go to about:debugging.
-    - Click on This Firefox > Load Temporary Add-on...
-    - Select the manifest.json file from the repository.
+    - Open Firefox and go to **about:debugging**.
+    - Click on This Firefox > **Load Temporary Add-on**...
+    - Select the **manifest.json** file from the repository.
 
 ## Usage
-Once installed, the extension automatically begins tracking:
+Once installed, the extension automatically begins tracking, if the hub is running:
 
 - Start Tracking: Invokes StartTabTracking when a tab is activated or updated.
 - Stop Tracking: Calls StopTabTracking when a tab is removed or after a period of inactivity.
