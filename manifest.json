@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Tab Focus Sync",
+  "version": "1.0",
+  "description": "Sends focused tab info to the tracker hub, for tracking the time spend on each tab.",
+  "permissions": ["tabs"],
+
+  "icons": {
+    "48": "icons/icon-48.png"
+  },
+
+  "background": {
+    "scripts": ["dist/background.bundle.js"],
+    "type": "module"
+  },
+
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}
