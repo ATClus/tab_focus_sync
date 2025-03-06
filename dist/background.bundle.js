@@ -3337,8 +3337,9 @@ function isLogger(logger) {
 }
 
 (function () {
-    const hubUrl = "https://localhost:7131/focushub";
+    const hubUrl = "https://localhost:7131/tabfocused";
     const RETRY_INTERVAL_MS = 5000;
+    const INACTIVITY_INTERVAL_MS = 60 * 60 * 1000; // 60 minutos
 
     const connection = new HubConnectionBuilder()
         .withUrl(hubUrl, { transport: HttpTransportType.WebSockets })
@@ -3354,9 +3355,8 @@ function isLogger(logger) {
         try {
             await connection.start();
             console.log("Connected to the Hub");
-            await connection.invoke("SendTabFocus", "Connection test", "");
         } catch (error) {
-            console.error("Erro na conexão com o Hub:", error);
+            console.error("Error connecting to the Hub:", error);
             setTimeout(startConnection, RETRY_INTERVAL_MS);
         }
     }
@@ -3366,41 +3366,113 @@ function isLogger(logger) {
         setTimeout(startConnection, RETRY_INTERVAL_MS);
     });
 
-    async function sendTabEvent(tab) {
-        if (connection.state === "Connected") {
-            try {
-                await connection.invoke("SendTabFocus", tab.title, tab.url);
-            } catch (error) {
-                console.error("Error sending tab data:", error);
+    let lastActiveTab = null;
+    let inactivityTimer = null;
+
+    function resetInactivityTimer() {
+        if (inactivityTimer) {
+            clearTimeout(inactivityTimer);
+        }
+        inactivityTimer = setTimeout(async () => {
+            console.log("60 minutes of inactivity detected. Stopping tracking.");
+            if (lastActiveTab) {
+                await stopTabTracking(lastActiveTab);
+                lastActiveTab = null;
             }
-        } else {
-            console.log("Inactive connection. Current state:", connection.state);
+        }, INACTIVITY_INTERVAL_MS);
+    }
+
+    async function startTabTracking(tab) {
+        try {
+            await connection.invoke("StartTabTracking", tab.title, tab.url);
+            console.log("Tracking started for the tab:", tab.title);
+        } catch (error) {
+            console.error("Error starting tab tracking:", error);
         }
     }
+
+    async function stopTabTracking(tab) {
+        try {
+            await connection.invoke("StopTabTracking", tab.url);
+            console.log("Tracking stopped for the tab:", tab.title);
+        } catch (error) {
+            console.error("Error stopping tab tracking:", error);
+        }
+    }
+
+    const trackedTabs = {};
 
     browser.tabs.onActivated.addListener(async (activeInfo) => {
         try {
             const tab = await browser.tabs.get(activeInfo.tabId);
             if (!tab.url) {
-                console.log("Tab activated without a defined URL.");
+                console.log("The activated tab does not have a defined URL.");
                 return;
             }
+            resetInactivityTimer();
 
-            await sendTabEvent(tab);
+            if (lastActiveTab && lastActiveTab.id !== tab.id) {
+                await stopTabTracking(lastActiveTab);
+            }
+
+            lastActiveTab = tab;
+            trackedTabs[tab.id] = tab;
+            await startTabTracking(tab);
         } catch (error) {
             console.error("Error processing tab activation:", error);
         }
     });
 
-    browser.tabs.onUpdated.addListener(async (changeInfo, tab) => {
+    browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
         if (changeInfo.status === "complete" && tab.url) {
             try {
-                await sendTabEvent(tab);
+                trackedTabs[tab.id] = tab;
+                resetInactivityTimer();
+                await startTabTracking(tab);
             } catch (error) {
                 console.error("Error sending tab update event:", error);
             }
         }
     });
+
+    browser.tabs.onRemoved.addListener(async (tabId, removeInfo) => {
+        try {
+            const closedTab = trackedTabs[tabId];
+            if (closedTab) {
+                await stopTabTracking(closedTab);
+                delete trackedTabs[tabId];
+                if (lastActiveTab && lastActiveTab.id === tabId) {
+                    lastActiveTab = null;
+                }
+            }
+        } catch (error) {
+            console.error("Error processing tab closure:", error);
+        }
+    });
+
+    browser.windows.onFocusChanged.addListener(async (windowId) => {
+    if (windowId === browser.windows.WINDOW_ID_NONE) {
+        console.log("No window is focused. Stopping tracking.");
+        if (lastActiveTab) {
+            await stopTabTracking(lastActiveTab);
+            lastActiveTab = null;
+        }
+    } else {
+        resetInactivityTimer();
+
+        try {
+            const tabs = await browser.tabs.query({ active: true, windowId });
+            if (tabs.length) {
+                const activeTab = tabs[0];
+                console.log("Window focused, active tab retrieved:", activeTab.title);
+                lastActiveTab = activeTab;
+                await startTabTracking(activeTab);
+            }
+        } catch (error) {
+            console.error("Error retrieving active tab on focus gain:", error);
+        }
+    }
+});
 
     startConnection();
 })();
